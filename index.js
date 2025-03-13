@@ -1,24 +1,24 @@
 const express = require("express");
 const {UserModel,TodoModel} = require("./db");
 const jwt = require("jsonwebtoken");
-const mongoose = require("mongoose");
-
-mongoose.connect("mongodb+srv://Clock0:ADPxKGCKXJBTwL2S@cluster0.egelc.mongodb.net/todo-app-database")
 const app = express();
+const mongoose = require("mongoose");
+mongoose.connect("mongodb+srv://Clock0:ADPxKGCKXJBTwL2S@cluster0.egelc.mongodb.net/todo-app-database")
 app.use(express.json());
 const JWT_SECRET = "helloworld";
-app.post("/signup", async function(req,res){
+app.post("/signup", async function(req, res) {
     const email = req.body.email;
     const password = req.body.password;
     const name = req.body.name;
+
     await UserModel.create({
         email: email,
         password: password,
         name: name
-    })
-
+    });
+    
     res.json({
-        message: "You are logged in"
+        message: "You are signed up"
     })
 });
 
@@ -47,11 +47,13 @@ app.post("/signin",async function(req,res){
 });
 
 app.post("/todo",auth,async function(req,res){
+    const userId = req.userId;
     const title = req.body.title;
     const done = req.body.done;
 
-    await TodoModel.insert({
+    await TodoModel.create({
         title: title,
+        userId: userId,
         done: done
     })
 
@@ -60,21 +62,32 @@ app.post("/todo",auth,async function(req,res){
     })
 });
 
-app.post("/todos",auth,function(req,res){
-    
+app.post("/todos",auth,async function(req,res){
+    const userId = req.userId;
+
+    const todos = await TodoModel.find({
+        userId
+    });
+
+    res.json({
+        todos
+    })
 });
 
-function auth(req,res,next){
+function auth(req, res, next) {
     const token = req.headers.token;
-    const decode = jwt.verify(token,JWT_SECRET);
 
-    if(decode){
-        req.userId = decode.Id;
+    const decode = jwt.verify(token, JWT_SECRET);
+
+    if (decode) {
+        req.userId = decode.id;
         next();
-    }else{
+    } else {
         res.status(403).json({
-            message: "Incorrect crendentials "
+            message: "Incorrect creds"
         })
     }
 }
+
+
 app.listen(3000);
