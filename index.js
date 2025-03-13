@@ -1,6 +1,9 @@
 const express = require("express");
 const {UserModel,TodoModel} = require("./db");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+
+mongoose.connect("mongodb+srv://Clock0:ADPxKGCKXJBTwL2S@cluster0.egelc.mongodb.net/todo-app-database")
 const app = express();
 app.use(express.json());
 const JWT_SECRET = "helloworld";
@@ -30,7 +33,7 @@ app.post("/signin",async function(req,res){
     console.log(user);
     if(user){
         const token = jwt.sign({
-            id: user._id
+            id: user._id.toString()
         },JWT_SECRET);
 
         res.json({
@@ -43,7 +46,7 @@ app.post("/signin",async function(req,res){
     }
 });
 
-app.post("/todo",async function(req,res){
+app.post("/todo",auth,async function(req,res){
     const title = req.body.title;
     const done = req.body.done;
 
@@ -57,8 +60,21 @@ app.post("/todo",async function(req,res){
     })
 });
 
-app.post("/todos",function(req,res){
+app.post("/todos",auth,function(req,res){
     
 });
 
+function auth(req,res,next){
+    const token = req.headers.token;
+    const decode = jwt.verify(token,JWT_SECRET);
+
+    if(decode){
+        req.userId = decode.Id;
+        next();
+    }else{
+        res.status(403).json({
+            message: "Incorrect crendentials "
+        })
+    }
+}
 app.listen(3000);
